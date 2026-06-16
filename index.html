@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Periodic Map Guesser</title>
+    <title>Element Game</title>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -16,6 +16,12 @@
         .wrapper {
             max-width: 1000px;
             margin: 0 auto;
+        }
+        
+        h1 {
+            margin: 5px 0 15px 0;
+            color: #38bdf8;
+            font-size: 32px;
         }
         
         .game-controls {
@@ -48,7 +54,6 @@
         }
         button:hover { background-color: #0ea5e9; }
 
-        /* Temperature Text Display */
         #status-msg {
             font-size: 20px;
             font-weight: bold;
@@ -96,22 +101,91 @@
         .hot { background-color: #ef4444 !important; color: white !important; }
         .correct { background-color: #22c55e !important; color: white !important; animation: win-pop 0.5s ease; }
         
-        .win-banner { color: #22c55e; font-size: 28px; font-weight: bold; margin-top: 15px; display: none; }
+        /* Stats Pop-up UI Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-box {
+            background-color: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
+            border: 2px solid #22c55e;
+            max-width: 350px;
+            width: 90%;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.show .modal-box {
+            transform: scale(1);
+        }
+        .modal-box h2 {
+            color: #22c55e;
+            margin-top: 0;
+            font-size: 28px;
+        }
+        .stat-line {
+            font-size: 18px;
+            margin: 15px 0;
+            color: #cbd5e1;
+        }
+        .stat-line span {
+            font-weight: bold;
+            color: #f8fafc;
+        }
+        .play-again-btn {
+            margin-top: 20px;
+            background-color: #22c55e;
+            color: #0f172a;
+            padding: 12px 30px;
+            font-size: 18px;
+            width: 100%;
+        }
+        .play-again-btn:hover {
+            background-color: #16a34a;
+        }
+
         @keyframes win-pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
+    <h1>Element Game</h1>
+
     <div class="game-controls">
         <input type="text" id="guess-input" placeholder="Type Element Name or Symbol..." autocomplete="off" autofocus>
         <button id="submit-btn">Guess</button>
     </div>
     
     <div id="status-msg"></div>
-    
     <div class="periodic-table" id="grid"></div>
-    <div id="win-banner" class="win-banner">🎉 YOU WIN! Refresh to try again.</div>
+</div>
+
+<div class="modal-overlay" id="win-modal">
+    <div class="modal-box">
+        <h2>🎉 Victory!</h2>
+        <p class="stat-line">The secret element was: <span id="secret-reveal" style="color:#38bdf8;"></span></p>
+        <div class="stat-line">Guesses Made: <span id="stat-guesses">0</span></div>
+        <div class="stat-line">Time Elapsed: <span id="stat-time">0s</span></div>
+        <button class="play-again-btn" id="reset-btn">Play Again</button>
+    </div>
 </div>
 
 <script>
@@ -127,16 +201,49 @@ const elementData = [
     { name: "actinium", symbol: "Ac", row: 10, col: 4 }, { name: "thorium", symbol: "Th", row: 10, col: 5 }, { name: "protactinium", symbol: "Pa", row: 10, col: 6 }, { name: "uranium", symbol: "U", row: 10, col: 7 }, { name: "neptunium", symbol: "Np", row: 10, col: 8 }, { name: "plutonium", symbol: "Pu", row: 10, col: 9 }, { name: "americium", symbol: "Am", row: 10, col: 10 }, { name: "curium", symbol: "Cm", row: 10, col: 11 }, { name: "berkelium", symbol: "Bk", row: 10, col: 12 }, { name: "californium", symbol: "Cf", row: 10, col: 13 }, { name: "einsteinium", symbol: "Es", row: 10, col: 14 }, { name: "fermium", symbol: "Fm", row: 10, col: 15 }, { name: "mendelevium", symbol: "Md", row: 10, col: 16 }, { name: "nobelium", symbol: "No", row: 10, col: 17 }, { name: "lawrencium", symbol: "Lr", row: 10, col: 18 }
 ];
 
-const secretElement = elementData[Math.floor(Math.random() * elementData.length)];
+let secretElement;
 let gameActive = true;
-const guessedElements = new Set();
+let guessedElements = new Set();
+let guessCount = 0;
+let startTime;
+let timerInterval;
 
 const gridContainer = document.getElementById('grid');
 const inputField = document.getElementById('guess-input');
 const submitBtn = document.getElementById('submit-btn');
-const winBanner = document.getElementById('win-banner');
 const statusMsg = document.getElementById('status-msg');
+
+// Modal Elements
+const winModal = document.getElementById('win-modal');
+const secretReveal = document.getElementById('secret-reveal');
+const statGuesses = document.getElementById('stat-guesses');
+const statTime = document.getElementById('stat-time');
+const resetBtn = document.getElementById('reset-btn');
+
 const tileMap = {};
+
+function initGame() {
+    // Reset configurations
+    gridContainer.innerHTML = "";
+    guessedElements.clear();
+    guessCount = 0;
+    gameActive = true;
+    statusMsg.innerHTML = "";
+    inputField.value = "";
+    inputField.disabled = false;
+    submitBtn.disabled = false;
+    winModal.classList.remove('show');
+    
+    // Pick target configuration element
+    secretElement = elementData[Math.floor(Math.random() * elementData.length)];
+    
+    // Setup time tracking
+    startTime = Date.now();
+    
+    // Generate fresh board
+    buildTable();
+    inputField.focus();
+}
 
 function buildTable() {
     for (let r = 1; r <= 10; r++) {
@@ -215,7 +322,7 @@ function processGuess() {
         return;
     }
     
-    // Format full capitalized name string
+    guessCount++;
     const formatName = foundEl.name.charAt(0).toUpperCase() + foundEl.name.slice(1);
     guessedElements.add(foundEl.name);
     const targetTile = tileMap[foundEl.name];
@@ -224,15 +331,26 @@ function processGuess() {
     const colDiff = Math.abs(foundEl.col - secretElement.col);
     const distance = rowDiff + colDiff;
     
-    statusMsg.style.color = "#f8fafc"; // Reset status text color to white
+    statusMsg.style.color = "#f8fafc";
     
     if (distance === 0) {
         targetTile.classList.add('correct');
-        statusMsg.style.display = "none";
-        winBanner.style.display = "block";
+        gameActive = false;
+        
+        // Finalize Time
+        const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+        
+        // Launch Pop-up Statistics UI
+        secretReveal.innerText = `${secretElement.name.charAt(0).toUpperCase() + secretElement.name.slice(1)} (${secretElement.symbol})`;
+        statGuesses.innerText = guessCount;
+        statTime.innerText = `${timeElapsed}s`;
+        
+        setTimeout(() => {
+            winModal.classList.add('show');
+        }, 600);
+        
         inputField.disabled = true;
         submitBtn.disabled = true;
-        gameActive = false;
     } else if (distance <= 2) {
         targetTile.classList.add('hot');
         statusMsg.innerHTML = `🔥 <b>${formatName} (${foundEl.symbol})</b> is Burning Hot!`;
@@ -252,8 +370,10 @@ submitBtn.addEventListener('click', processGuess);
 inputField.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') processGuess();
 });
+resetBtn.addEventListener('click', initGame);
 
-buildTable();
+// Load the initial session run
+initGame();
 </script>
 
 </body>
