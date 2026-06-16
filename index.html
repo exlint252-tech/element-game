@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Periodic Element Guesser</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; margin-top: 0; }
+        select, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 2px solid #bdc3c7;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #2980b9; }
+        .guess-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-weight: bold;
+            color: white;
+        }
+        .freezing { background-color: #3498db; }
+        .cold { background-color: #64b5f6; }
+        .warm { background-color: #ffb74d; }
+        .hot { background-color: #e67e22; }
+        .burning { background-color: #e74c3c; }
+        .correct { background-color: #2ecc71; animation: pop 0.3s ease; }
+        #win-message { display: none; color: #2ecc71; font-weight: bold; margin-top: 15px; }
+        @keyframes pop { 0% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Periodic Element Guesser</h1>
+    <p>Guess the secret element! The game will tell you how hot or cold you are based on the periodic table layout.</p>
+    
+    <select id="element-select">
+        <option value="">-- Choose an Element --</option>
+    </select>
+    <button id="guess-btn">Submit Guess</button>
+    
+    <div id="win-message">🎉 You found it! Refresh to play again.</div>
+    <div id="history"></div>
+</div>
+
+<script>
+// Simplified dataset of elements with their grid coordinates (Row, Column)
+const elements = [
+    { name: "Hydrogen (H)", row: 1, col: 1 },
+    { name: "Helium (He)", row: 1, col: 18 },
+    { name: "Lithium (Li)", row: 2, col: 1 },
+    { name: "Beryllium (Be)", row: 2, col: 2 },
+    { name: "Boron (B)", row: 2, col: 13 },
+    { name: "Carbon (C)", row: 2, col: 14 },
+    { name: "Nitrogen (N)", row: 2, col: 15 },
+    { name: "Oxygen (O)", row: 2, col: 16 },
+    { name: "Fluorine (F)", row: 2, col: 17 },
+    { name: "Neon (Ne)", row: 2, col: 18 },
+    { name: "Sodium (Na)", row: 3, col: 1 },
+    { name: "Magnesium (Mg)", row: 3, col: 2 },
+    { name: "Aluminum (Al)", row: 3, col: 13 },
+    { name: "Silicon (Si)", row: 3, col: 14 },
+    { name: "Phosphorus (P)", row: 3, col: 15 },
+    { name: "Sulfur (S)", row: 3, col: 16 },
+    { name: "Chlorine (Cl)", row: 3, col: 17 },
+    { name: "Argon (Ar)", row: 3, col: 18 },
+    { name: "Potassium (K)", row: 4, col: 1 },
+    { name: "Calcium (Ca)", row: 4, col: 2 },
+    { name: "Iron (Fe)", row: 4, col: 8 },
+    { name: "Copper (Cu)", row: 4, col: 11 },
+    { name: "Gold (Au)", row: 6, col: 11 }
+];
+
+// Pick a random secret element
+const secretElement = elements[Math.floor(Math.random() * elements.length)];
+
+// Populate the dropdown menu alphabetically
+const selectMenu = document.getElementById('element-select');
+[...elements].sort((a,b) => a.name.localeCompare(b.name)).forEach(el => {
+    let opt = document.createElement('option');
+    opt.value = el.name;
+    opt.innerHTML = el.name;
+    selectMenu.appendChild(opt);
+});
+
+// Game logic when clicking "Submit Guess"
+document.getElementById('guess-btn').addEventListener('click', () => {
+    const guessName = selectMenu.value;
+    if (!guessName) return alert("Please select an element!");
+    
+    const guessedEl = elements.find(el => el.name === guessName);
+    
+    // Calculate Grid Distance using absolute values
+    const rowDiff = Math.abs(guessedEl.row - secretElement.row);
+    const colDiff = Math.abs(guessedEl.col - secretElement.col);
+    const totalDistance = rowDiff + colDiff;
+    
+    let tempClass = "";
+    let textStatus = "";
+    
+    // Determine temperature based on distance
+    if (totalDistance === 0) {
+        tempClass = "correct";
+        textStatus = "Correct!";
+        document.getElementById('win-message').style.display = "block";
+        document.getElementById('guess-btn').disabled = true;
+    } else if (totalDistance <= 2) {
+        tempClass = "burning";
+        textStatus = "Burning Hot!";
+    } else if (totalDistance <= 5) {
+        tempClass = "hot";
+        textStatus = "Warm";
+    } else if (totalDistance <= 9) {
+        tempClass = "cold";
+        textStatus = "Chilly";
+    } else {
+        tempClass = "freezing";
+        textStatus = "Freezing Cold";
+    }
+    
+    // Add to history list
+    const historyDiv = document.getElementById('history');
+    const newRow = document.createElement('div');
+    newRow.className = `guess-row ${tempClass}`;
+    newRow.innerHTML = `<span>${guessedEl.name}</span> <span>${textStatus}</span>`;
+    historyDiv.insertBefore(newRow, historyDiv.firstChild);
+});
+</script>
+
+</body>
+</html>
