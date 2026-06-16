@@ -26,12 +26,12 @@
         
         .game-controls {
             margin: 10px auto 15px auto;
-            max-width: 400px;
+            max-width: 500px;
             display: flex;
             gap: 10px;
         }
         input {
-            flex: 1;
+            flex: 2;
             padding: 12px;
             border-radius: 8px;
             border: 2px solid #334155;
@@ -42,23 +42,36 @@
             text-align: center;
         }
         input:focus { border-color: #38bdf8; }
+        
         button {
-            padding: 12px 24px;
-            background-color: #38bdf8;
-            color: #0f172a;
+            padding: 12px 20px;
             border: none;
             border-radius: 8px;
             font-weight: bold;
             font-size: 16px;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
-        button:hover { background-color: #0ea5e9; }
+        #submit-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            flex: 1;
+        }
+        #submit-btn:hover { background-color: #0ea5e9; }
+        
+        #giveup-btn {
+            background-color: #475569;
+            color: #f8fafc;
+            flex: 1;
+        }
+        #giveup-btn:hover { background-color: #64748b; }
 
         #status-msg {
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 20px;
             min-height: 30px;
+            transition: color 0.3s ease;
         }
 
         .periodic-table {
@@ -70,6 +83,7 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             margin-bottom: 15px;
+            animation: table-intro 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         
         .cell {
@@ -92,14 +106,23 @@
         
         .spacer-row {
             grid-column: span 18;
-            height: 25px; /* Creates the perfect gap between blocks */
+            height: 25px;
         }
         
-        .freezing { background-color: #1d4ed8 !important; color: white !important; }
-        .cold { background-color: #3b82f6 !important; color: white !important; }
-        .warm { background-color: #f97316 !important; color: white !important; }
-        .hot { background-color: #ef4444 !important; color: white !important; }
-        .correct { background-color: #22c55e !important; color: white !important; animation: win-pop 0.5s ease; }
+        /* Temperature Classes - text color permanently goes white once hit */
+        .freezing { background-color: #1d4ed8 !important; color: #ffffff !important; }
+        .cold { background-color: #3b82f6 !important; color: #ffffff !important; }
+        .warm { background-color: #f97316 !important; color: #ffffff !important; }
+        .hot { background-color: #ef4444 !important; color: #ffffff !important; }
+        .correct { background-color: #22c55e !important; color: #ffffff !important; animation: win-pop 0.5s ease; }
+        .giveup-reveal { background-color: #a855f7 !important; color: #ffffff !important; }
+
+        /* Color definitions matching standard layout variables */
+        .txt-freezing { color: #60a5fa; }
+        .txt-cold { color: #93c5fd; }
+        .txt-warm { color: #fdba74; }
+        .txt-hot { color: #fca5a5; }
+        .txt-correct { color: #86efac; }
         
         /* Stats Pop-up UI Overlay */
         .modal-overlay {
@@ -136,7 +159,6 @@
             transform: scale(1);
         }
         .modal-box h2 {
-            color: #22c55e;
             margin-top: 0;
             font-size: 28px;
         }
@@ -162,6 +184,7 @@
         }
 
         @keyframes win-pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes table-intro { 0% { opacity: 0; transform: scale(0.96) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
     </style>
 </head>
 <body>
@@ -172,6 +195,7 @@
     <div class="game-controls">
         <input type="text" id="guess-input" placeholder="Type Element Name or Symbol..." autocomplete="off" autofocus>
         <button id="submit-btn">Guess</button>
+        <button id="giveup-btn">Give Up</button>
     </div>
     
     <div id="status-msg"></div>
@@ -179,11 +203,14 @@
 </div>
 
 <div class="modal-overlay" id="win-modal">
-    <div class="modal-box">
-        <h2>🎉 Victory!</h2>
+    <div class="modal-box" id="modal-border">
+        <h2 id="modal-title">🎉 Victory!</h2>
         <p class="stat-line">The secret element was: <span id="secret-reveal" style="color:#38bdf8;"></span></p>
         <div class="stat-line">Guesses Made: <span id="stat-guesses">0</span></div>
         <div class="stat-line">Time Elapsed: <span id="stat-time">0s</span></div>
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 15px 0;">
+        <div class="stat-line">Current Streak: <span id="stat-streak" style="color: #f59e0b;">0</span></div>
+        <div class="stat-line">Best Streak: <span id="stat-best-streak" style="color: #38bdf8;">0</span></div>
         <button class="play-again-btn" id="reset-btn">Play Again</button>
     </div>
 </div>
@@ -198,7 +225,6 @@ const elementData = [
     { name: "cesium", symbol: "Cs", row: 6, col: 1 }, { name: "barium", symbol: "Ba", row: 6, col: 2 }, { name: "lanthanum", symbol: "La", row: 6, col: 3 }, { name: "hafnium", symbol: "Hf", row: 6, col: 4 }, { name: "tantalum", symbol: "Ta", row: 6, col: 5 }, { name: "tungsten", symbol: "W", row: 6, col: 6 }, { name: "rhenium", symbol: "Re", row: 6, col: 7 }, { name: "osmium", symbol: "Os", row: 6, col: 8 }, { name: "iridium", symbol: "Ir", row: 6, col: 9 }, { name: "platinum", symbol: "Pt", row: 6, col: 10 }, { name: "gold", symbol: "Au", row: 6, col: 11 }, { name: "mercury", symbol: "Hg", row: 6, col: 12 }, { name: "thallium", symbol: "Tl", row: 6, col: 13 }, { name: "lead", symbol: "Pb", row: 6, col: 14 }, { name: "bismuth", symbol: "Bi", row: 6, col: 15 }, { name: "polonium", symbol: "Po", row: 6, col: 16 }, { name: "astatine", symbol: "At", row: 6, col: 17 }, { name: "radon", symbol: "Rn", row: 6, col: 18 },
     { name: "francium", symbol: "Fr", row: 7, col: 1 }, { name: "radium", symbol: "Ra", row: 7, col: 2 }, { name: "actinium", symbol: "Ac", row: 7, col: 3 }, { name: "rutherfordium", symbol: "Rf", row: 7, col: 4 }, { name: "dubnium", symbol: "Db", row: 7, col: 5 }, { name: "seaborgium", symbol: "Sg", row: 7, col: 6 }, { name: "bohrium", symbol: "Bh", row: 7, col: 7 }, { name: "hassium", symbol: "Hs", row: 7, col: 8 }, { name: "meitnerium", symbol: "Mt", row: 7, col: 9 }, { name: "darmstadtium", symbol: "Ds", row: 7, col: 10 }, { name: "roentgenium", symbol: "Rg", row: 7, col: 11 }, { name: "copernicium", symbol: "Cn", row: 7, col: 12 }, { name: "nihonium", symbol: "Nh", row: 7, col: 13 }, { name: "flerovium", symbol: "Fl", row: 7, col: 14 }, { name: "moscovium", symbol: "Mc", row: 7, col: 15 }, { name: "livermorium", symbol: "Lv", row: 7, col: 16 }, { name: "tennessine", symbol: "Ts", row: 7, col: 17 }, { name: "oganesson", symbol: "Og", row: 7, col: 18 },
     
-    // Bottom Block exactly matched to cols 4 through 17
     { name: "cerium", symbol: "Ce", row: 9, col: 4 }, { name: "praseodymium", symbol: "Pr", row: 9, col: 5 }, { name: "neodymium", symbol: "Nd", row: 9, col: 6 }, { name: "promethium", symbol: "Pm", row: 9, col: 7 }, { name: "samarium", symbol: "Sm", row: 9, col: 8 }, { name: "europium", symbol: "Eu", row: 9, col: 9 }, { name: "gadolinium", symbol: "Gd", row: 9, col: 10 }, { name: "terbium", symbol: "Tb", row: 9, col: 11 }, { name: "dysprosium", symbol: "Dy", row: 9, col: 12 }, { name: "holmium", symbol: "Ho", row: 9, col: 13 }, { name: "erbium", symbol: "Er", row: 9, col: 14 }, { name: "thulium", symbol: "Tm", row: 9, col: 15 }, { name: "ytterbium", symbol: "Yb", row: 9, col: 16 }, { name: "lutetium", symbol: "Lu", row: 9, col: 17 },
     { name: "thorium", symbol: "Th", row: 10, col: 4 }, { name: "protactinium", symbol: "Pa", row: 10, col: 5 }, { name: "uranium", symbol: "U", row: 10, col: 6 }, { name: "neptunium", symbol: "Np", row: 10, col: 7 }, { name: "plutonium", symbol: "Pu", row: 10, col: 8 }, { name: "americium", symbol: "Am", row: 10, col: 9 }, { name: "curium", symbol: "Cm", row: 10, col: 10 }, { name: "berkelium", symbol: "Bk", row: 10, col: 11 }, { name: "californium", symbol: "Cf", row: 10, col: 12 }, { name: "einsteinium", symbol: "Es", row: 10, col: 13 }, { name: "fermium", symbol: "Fm", row: 10, col: 14 }, { name: "mendelevium", symbol: "Md", row: 10, col: 15 }, { name: "nobelium", symbol: "No", row: 10, col: 16 }, { name: "lawrencium", symbol: "Lr", row: 10, col: 17 }
 ];
@@ -208,22 +234,84 @@ let gameActive = true;
 let guessedElements = new Set();
 let guessCount = 0;
 let startTime;
+let audioCtx = null;
 
 const gridContainer = document.getElementById('grid');
 const inputField = document.getElementById('guess-input');
 const submitBtn = document.getElementById('submit-btn');
+const giveupBtn = document.getElementById('giveup-btn');
 const statusMsg = document.getElementById('status-msg');
 
+// Modal Elements
 const winModal = document.getElementById('win-modal');
+const modalBorder = document.getElementById('modal-border');
+const modalTitle = document.getElementById('modal-title');
 const secretReveal = document.getElementById('secret-reveal');
 const statGuesses = document.getElementById('stat-guesses');
 const statTime = document.getElementById('stat-time');
+const statStreak = document.getElementById('stat-streak');
+const statBestStreak = document.getElementById('stat-best-streak');
 const resetBtn = document.getElementById('reset-btn');
 
 const tileMap = {};
 
+// Background Music Synth Generator
+function initAudio() {
+    if (audioCtx) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playChords() {
+            if (!audioCtx || audioCtx.state === 'suspended') return;
+            
+            // Subtle, relaxing low-fi synth pads progression
+            const chords = [
+                [110.00, 138.61, 164.81], // A maj synth pad base
+                [116.54, 138.61, 174.61], // Db min pad base
+                [98.00, 123.47, 146.83]    // G maj pad base
+            ];
+            
+            let currentChord = chords[Math.floor(Math.random() * chords.length)];
+            
+            currentChord.forEach(freq => {
+                let osc = audioCtx.createOscillator();
+                let gainNode = audioCtx.createGain();
+                
+                osc.type = 'triangle'; // Smooth waveform for low-fi feel
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                // Super quiet, ambient background levels
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.015, audioCtx.currentTime + 2);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 7);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 7);
+            });
+            
+            setTimeout(playChords, 6500);
+        }
+        playChords();
+    } catch(e) { console.log("Audio not supported"); }
+}
+
+function startAudioContext() {
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    } else {
+        initAudio();
+    }
+}
+
 function initGame() {
+    // Clear and build grid wrapper
     gridContainer.innerHTML = "";
+    gridContainer.style.animation = 'none';
+    setTimeout(() => { gridContainer.style.animation = ''; }, 10);
+    
     guessedElements.clear();
     guessCount = 0;
     gameActive = true;
@@ -231,6 +319,7 @@ function initGame() {
     inputField.value = "";
     inputField.disabled = false;
     submitBtn.disabled = false;
+    giveupBtn.disabled = false;
     winModal.classList.remove('show');
     
     secretElement = elementData[Math.floor(Math.random() * elementData.length)];
@@ -281,7 +370,28 @@ function getTypoCount(a, b) {
     return matrix[b.length][a.length];
 }
 
+// Generates an arrow key pointing toward the secret target
+function getDirectionHint(current, target) {
+    let rowDel = target.row - current.row;
+    let colDel = target.col - current.col;
+    
+    // Normalize if rows/cols belong to bottom blocks to give flat directions
+    if (current.row >= 9) { if(target.row < 9) return "⬆️ Up"; }
+    if (target.row >= 9) { if(current.row < 9) return "⬇️ Down"; }
+    
+    if (rowDel === 0 && colDel > 0) return "➡️ Right";
+    if (rowDel === 0 && colDel < 0) return "⬅️ Left";
+    if (rowDel > 0 && colDel === 0) return "⬇️ Down";
+    if (rowDel < 0 && colDel === 0) return "⬆️ Up";
+    if (rowDel < 0 && colDel > 0) return "↗️ Up-Right";
+    if (rowDel < 0 && colDel < 0) return "↖️ Up-Left";
+    if (rowDel > 0 && colDel > 0) return "↘️ Down-Right";
+    if (rowDel > 0 && colDel < 0) return "↙️ Down-Left";
+    return "";
+}
+
 function processGuess() {
+    startAudioContext();
     if (!gameActive) return;
     const rawInput = inputField.value.trim().toLowerCase();
     if (!rawInput) return;
@@ -307,13 +417,13 @@ function processGuess() {
     
     if (!foundEl) {
         statusMsg.innerHTML = "❌ Not a valid element name!";
-        statusMsg.style.color = "#ef4444";
+        statusMsg.className = "txt-hot";
         return;
     }
     
     if (guessedElements.has(foundEl.name)) {
         statusMsg.innerHTML = `⚠️ You already guessed ${foundEl.symbol}!`;
-        statusMsg.style.color = "#f59e0b";
+        statusMsg.className = "txt-warm";
         return;
     }
     
@@ -322,44 +432,85 @@ function processGuess() {
     guessedElements.add(foundEl.name);
     const targetTile = tileMap[foundEl.name];
     
+    // Grid distance system
     const rowDiff = Math.abs(foundEl.row - secretElement.row);
     const colDiff = Math.abs(foundEl.col - secretElement.col);
     const distance = rowDiff + colDiff;
     
-    statusMsg.style.color = "#f8fafc";
+    const arrowHint = getDirectionHint(foundEl, secretElement);
     
     if (distance === 0) {
-        targetTile.classList.add('correct');
-        gameActive = false;
-        
-        const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
-        
-        secretReveal.innerText = `${secretElement.name.charAt(0).toUpperCase() + secretElement.name.slice(1)} (${secretElement.symbol})`;
-        statGuesses.innerText = guessCount;
-        statTime.innerText = `${timeElapsed}s`;
-        
-        setTimeout(() => {
-            winModal.classList.add('show');
-        }, 600);
-        
-        inputField.disabled = true;
-        submitBtn.disabled = true;
+        targetTile.className = "cell correct";
+        endGame(true);
     } else if (distance <= 2) {
-        targetTile.classList.add('hot');
-        statusMsg.innerHTML = `🔥 <b>${formatName} (${foundEl.symbol})</b> is Burning Hot!`;
+        targetTile.className = "cell hot";
+        statusMsg.innerHTML = `🔥 <b>${formatName} (${foundEl.symbol})</b> is Burning Hot! (Go ${arrowHint})`;
+        statusMsg.className = "txt-hot";
     } else if (distance <= 4) {
-        targetTile.classList.add('warm');
-        statusMsg.innerHTML = `🌤️ <b>${formatName} (${foundEl.symbol})</b> is Warm.`;
+        targetTile.className = "cell warm";
+        statusMsg.innerHTML = `🌤️ <b>${formatName} (${foundEl.symbol})</b> is Warm. (Go ${arrowHint})`;
+        statusMsg.className = "txt-warm";
     } else if (distance <= 8) {
-        targetTile.classList.add('cold');
-        statusMsg.innerHTML = `❄️ <b>${formatName} (${foundEl.symbol})</b> is Chilly.`;
+        targetTile.className = "cell cold";
+        statusMsg.innerHTML = `❄️ <b>${formatName} (${foundEl.symbol})</b> is Chilly. (Go ${arrowHint})`;
+        statusMsg.className = "txt-cold";
     } else {
-        targetTile.classList.add('freezing');
-        statusMsg.innerHTML = `🥶 <b>${formatName} (${foundEl.symbol})</b> is Freezing Cold!`;
+        targetTile.className = "cell freezing";
+        statusMsg.innerHTML = `🥶 <b>${formatName} (${foundEl.symbol})</b> is Freezing Cold! (Go ${arrowHint})`;
+        statusMsg.className = "txt-freezing";
     }
 }
 
+function handleGiveUp() {
+    startAudioContext();
+    if (!gameActive) return;
+    const answerTile = tileMap[secretElement.name];
+    answerTile.className = "cell giveup-reveal";
+    endGame(false);
+}
+
+function endGame(isWin) {
+    gameActive = false;
+    inputField.disabled = true;
+    submitBtn.disabled = true;
+    giveupBtn.disabled = true;
+    
+    const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+    
+    // Streaks calculations
+    let currentStreak = parseInt(localStorage.getItem('elem_streak') || '0');
+    let bestStreak = parseInt(localStorage.getItem('elem_best_streak') || '0');
+    
+    if (isWin) {
+        currentStreak++;
+        if (currentStreak > bestStreak) bestStreak = currentStreak;
+        modalTitle.innerText = "🎉 Victory!";
+        modalTitle.style.color = "#22c55e";
+        modalBorder.style.borderColor = "#22c55e";
+    } else {
+        currentStreak = 0;
+        modalTitle.innerText = "💀 Unlucky!";
+        modalTitle.style.color = "#ef4444";
+        modalBorder.style.borderColor = "#ef4444";
+    }
+    
+    localStorage.setItem('elem_streak', currentStreak);
+    localStorage.setItem('elem_best_streak', bestStreak);
+    
+    // Output modal numbers
+    secretReveal.innerText = `${secretElement.name.charAt(0).toUpperCase() + secretElement.name.slice(1)} (${secretElement.symbol})`;
+    statGuesses.innerText = guessCount;
+    statTime.innerText = `${timeElapsed}s`;
+    statStreak.innerText = currentStreak;
+    statBestStreak.innerText = bestStreak;
+    
+    setTimeout(() => {
+        winModal.classList.add('show');
+    }, 700);
+}
+
 submitBtn.addEventListener('click', processGuess);
+giveupBtn.addEventListener('click', handleGiveUp);
 inputField.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') processGuess();
 });
