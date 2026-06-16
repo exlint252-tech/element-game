@@ -18,7 +18,6 @@
             margin: 0 auto;
         }
         
-        /* Input Bar at the very top */
         .game-controls {
             margin: 10px auto 25px auto;
             max-width: 400px;
@@ -49,7 +48,6 @@
         }
         button:hover { background-color: #0ea5e9; }
 
-        /* The Full 18-Column Grid */
         .periodic-table {
             display: grid;
             grid-template-columns: repeat(18, 1fr);
@@ -61,7 +59,6 @@
             margin-bottom: 15px;
         }
         
-        /* Blank Blind Tiles */
         .cell {
             aspect-ratio: 1;
             background-color: #475569;
@@ -71,7 +68,7 @@
             justify-content: center;
             font-weight: bold;
             font-size: 11px;
-            color: transparent; /* Hides symbol text until guessed */
+            color: transparent; 
             user-select: none;
             transition: background-color 0.4s, color 0.4s;
         }
@@ -80,13 +77,11 @@
             background-color: transparent;
         }
         
-        /* Lanthanides / Actinides Spacer Row */
         .spacer-row {
             grid-column: span 18;
             height: 15px;
         }
         
-        /* Colors when revealed */
         .freezing { background-color: #1d4ed8 !important; color: white !important; }
         .cold { background-color: #3b82f6 !important; color: white !important; }
         .warm { background-color: #f97316 !important; color: white !important; }
@@ -118,9 +113,7 @@ const elementData = [
     { name: "rubidium", symbol: "Rb", row: 5, col: 1 }, { name: "strontium", symbol: "Sr", row: 5, col: 2 }, { name: "yttrium", symbol: "Y", row: 5, col: 3 }, { name: "zirconium", symbol: "Zr", row: 5, col: 4 }, { name: "niobium", symbol: "Nb", row: 5, col: 5 }, { name: "molybdenum", symbol: "Mo", row: 5, col: 6 }, { name: "technetium", symbol: "Tc", row: 5, col: 7 }, { name: "ruthenium", symbol: "Ru", row: 5, col: 8 }, { name: "rhodium", symbol: "Rh", row: 5, col: 9 }, { name: "palladium", symbol: "Pd", row: 5, col: 10 }, { name: "silver", symbol: "Ag", row: 5, col: 11 }, { name: "cadmium", symbol: "Cd", row: 5, col: 12 }, { name: "indium", symbol: "In", row: 5, col: 13 }, { name: "tin", symbol: "Sn", row: 5, col: 14 }, { name: "antimony", symbol: "Sb", row: 5, col: 15 }, { name: "tellurium", symbol: "Te", row: 5, col: 16 }, { name: "iodine", symbol: "I", row: 5, col: 17 }, { name: "xenon", symbol: "Xe", row: 5, col: 18 },
     { name: "cesium", symbol: "Cs", row: 6, col: 1 }, { name: "barium", symbol: "Ba", row: 6, col: 2 }, { name: "hafnium", symbol: "Hf", row: 6, col: 4 }, { name: "tantalum", symbol: "Ta", row: 6, col: 5 }, { name: "tungsten", symbol: "W", row: 6, col: 6 }, { name: "rhenium", symbol: "Re", row: 6, col: 7 }, { name: "osmium", symbol: "Os", row: 6, col: 8 }, { name: "iridium", symbol: "Ir", row: 6, col: 9 }, { name: "platinum", symbol: "Pt", row: 6, col: 10 }, { name: "gold", symbol: "Au", row: 6, col: 11 }, { name: "mercury", symbol: "Hg", row: 6, col: 12 }, { name: "thallium", symbol: "Tl", row: 6, col: 13 }, { name: "lead", symbol: "Pb", row: 6, col: 14 }, { name: "bismuth", symbol: "Bi", row: 6, col: 15 }, { name: "polonium", symbol: "Po", row: 6, col: 16 }, { name: "astatine", symbol: "At", row: 6, col: 17 }, { name: "radon", symbol: "Rn", row: 6, col: 18 },
     { name: "francium", symbol: "Fr", row: 7, col: 1 }, { name: "radium", symbol: "Ra", row: 7, col: 2 }, { name: "rutherfordium", symbol: "Rf", row: 7, col: 4 }, { name: "dubnium", symbol: "Db", row: 7, col: 5 }, { name: "seaborgium", symbol: "Sg", row: 7, col: 6 }, { name: "bohrium", symbol: "Bh", row: 7, col: 7 }, { name: "hassium", symbol: "Hs", row: 7, col: 8 }, { name: "meitnerium", symbol: "Mt", row: 7, col: 9 }, { name: "darmstadtium", symbol: "Ds", row: 7, col: 10 }, { name: "roentgenium", symbol: "Rg", row: 7, col: 11 }, { name: "copernicium", symbol: "Cn", row: 7, col: 12 }, { name: "nihonium", symbol: "Nh", row: 7, col: 13 }, { name: "flerovium", symbol: "Fl", row: 7, col: 14 }, { name: "moscovium", symbol: "Mc", row: 7, col: 15 }, { name: "livermorium", symbol: "Lv", row: 7, col: 16 }, { name: "tennessine", symbol: "Ts", row: 7, col: 17 }, { name: "oganesson", symbol: "Og", row: 7, col: 18 },
-    // Lanthanides (Row 9 split placement)
     { name: "lanthanum", symbol: "La", row: 9, col: 4 }, { name: "cerium", symbol: "Ce", row: 9, col: 5 }, { name: "praseodymium", symbol: "Pr", row: 9, col: 6 }, { name: "neodymium", symbol: "Nd", row: 9, col: 7 }, { name: "promethium", symbol: "Pm", row: 9, col: 8 }, { name: "samarium", symbol: "Sm", row: 9, col: 9 }, { name: "europium", symbol: "Eu", row: 9, col: 10 }, { name: "gadolinium", symbol: "Gd", row: 9, col: 11 }, { name: "terbium", symbol: "Tb", row: 9, col: 12 }, { name: "dysprosium", symbol: "Dy", row: 9, col: 13 }, { name: "holmium", symbol: "Ho", row: 9, col: 14 }, { name: "erbium", symbol: "Er", row: 9, col: 15 }, { name: "thulium", symbol: "Tm", row: 9, col: 16 }, { name: "ytterbium", symbol: "Yb", row: 9, col: 17 }, { name: "lutetium", symbol: "Lu", row: 9, col: 18 },
-    // Actinides (Row 10 split placement)
     { name: "actinium", symbol: "Ac", row: 10, col: 4 }, { name: "thorium", symbol: "Th", row: 10, col: 5 }, { name: "protactinium", symbol: "Pa", row: 10, col: 6 }, { name: "uranium", symbol: "U", row: 10, col: 7 }, { name: "neptunium", symbol: "Np", row: 10, col: 8 }, { name: "plutonium", symbol: "Pu", row: 10, col: 9 }, { name: "americium", symbol: "Am", row: 10, col: 10 }, { name: "curium", symbol: "Cm", row: 10, col: 11 }, { name: "berkelium", symbol: "Bk", row: 10, col: 12 }, { name: "californium", symbol: "Cf", row: 10, col: 13 }, { name: "einsteinium", symbol: "Es", row: 10, col: 14 }, { name: "fermium", symbol: "Fm", row: 10, col: 15 }, { name: "mendelevium", symbol: "Md", row: 10, col: 16 }, { name: "nobelium", symbol: "No", row: 10, col: 17 }, { name: "lawrencium", symbol: "Lr", row: 10, col: 18 }
 ];
 
@@ -132,7 +125,6 @@ const gridContainer = document.getElementById('grid');
 const inputField = document.getElementById('guess-input');
 const submitBtn = document.getElementById('submit-btn');
 const winBanner = document.getElementById('win-banner');
-
 const tileMap = {};
 
 function buildTable() {
@@ -146,7 +138,6 @@ function buildTable() {
         for (let c = 1; c <= 18; c++) {
             const cell = document.createElement('div');
             const el = elementData.find(item => item.row === r && item.col === c);
-            
             if (el) {
                 cell.className = "cell";
                 cell.innerText = el.symbol;
@@ -159,22 +150,68 @@ function buildTable() {
     }
 }
 
+// Math logic to calculate typos (Levenshtein distance)
+function getTypoCount(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    let matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
 function processGuess() {
     if (!gameActive) return;
     const rawInput = inputField.value.trim().toLowerCase();
+    if (!rawInput) return;
+    
     inputField.value = ""; 
     
-    const foundEl = elementData.find(el => el.name === rawInput || el.symbol.toLowerCase() === rawInput);
+    let foundEl = null;
+
+    // First try: Exact match for Name or Symbol
+    foundEl = elementData.find(el => el.name === rawInput || el.symbol.toLowerCase() === rawInput);
+    
+    // Second try: Fuzzy search for typos on the name
+    if (!foundEl) {
+        let bestMatch = null;
+        let lowestTypos = Infinity;
+        
+        for (let el of elementData) {
+            let typos = getTypoCount(rawInput, el.name);
+            if (typos < lowestTypos) {
+                lowestTypos = typos;
+                bestMatch = el;
+            }
+        }
+        // Allow 1 typo for short words (under 5 letters) and 2 typos for longer words
+        let maxTyposAllowed = rawInput.length <= 4 ? 1 : 2;
+        if (lowestTypos <= maxTyposAllowed) {
+            foundEl = bestMatch;
+        }
+    }
     
     if (!foundEl) {
-        alert("Not a valid element name or symbol!");
+        alert("Not a valid element name! Check your spelling.");
         return;
     }
     
     if (guessedElements.has(foundEl.name)) {
-        alert("You already guessed that element!");
+        alert(`You already guessed ${foundEl.name}!`);
         return;
     }
+    
+    // If it was a typo, show them what the game corrected it to
+    inputField.placeholder = `Accepted as ${foundEl.name.charAt(0).toUpperCase() + foundEl.name.slice(1)}...`;
     
     guessedElements.add(foundEl.name);
     const targetTile = tileMap[foundEl.name];
