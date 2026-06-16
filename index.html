@@ -56,6 +56,13 @@
             pointer-events: none;
         }
         
+        /* Disabled state for already guessed elements */
+        .guessed {
+            pointer-events: none; /* Stops it from being clickable again */
+            transform: none !important;
+            opacity: 0.8;
+        }
+        
         .freezing { background-color: #1d4ed8 !important; color: white; }
         .cold { background-color: #3b82f6 !important; color: white; }
         .warm { background-color: #f97316 !important; color: white; }
@@ -81,7 +88,7 @@
 
 <div class="wrapper">
     <h1>Periodic Map Guesser</h1>
-    <p class="instructions">Click any element on the grid to guess. The closer you are to the secret element, the hotter the tile turns!</p>
+    <p class="instructions">Click any element on the grid to guess. The closer you are to the secret element, the hotter the tile turns! You can only guess each tile once.</p>
     
     <div class="periodic-table" id="grid"></div>
     
@@ -135,13 +142,14 @@ for (let r = 1; r <= 3; r++) {
 }
 
 function handleGuess(guessedEl, cellElement) {
-    if (!gameActive) return;
+    if (!gameActive || cellElement.classList.contains('guessed')) return;
+    
+    // Mark it as guessed so it can't be clicked again
+    cellElement.classList.add('guessed');
     
     const rowDiff = Math.abs(guessedEl.row - secretElement.row);
     const colDiff = Math.abs(guessedEl.col - secretElement.col);
     const distance = rowDiff + colDiff;
-    
-    cellElement.classList.remove('freezing', 'cold', 'warm', 'hot', 'correct');
     
     if (distance === 0) {
         cellElement.classList.add('correct');
