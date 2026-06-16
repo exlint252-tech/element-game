@@ -8,168 +8,204 @@
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             text-align: center;
-            background-color: #1e293b;
+            background-color: #0f172a;
             color: #f8fafc;
             margin: 0;
             padding: 20px;
         }
         .wrapper {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
         }
-        h1 { margin-bottom: 5px; color: #38bdf8; }
-        .instructions { color: #94a3b8; margin-bottom: 20px; font-size: 14px; }
         
+        /* Input Bar at the very top */
+        .game-controls {
+            margin: 10px auto 25px auto;
+            max-width: 400px;
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #334155;
+            background-color: #1e293b;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            text-align: center;
+        }
+        input:focus { border-color: #38bdf8; }
+        button {
+            padding: 12px 24px;
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0ea5e9; }
+
+        /* The Full 18-Column Grid */
         .periodic-table {
             display: grid;
             grid-template-columns: repeat(18, 1fr);
             gap: 4px;
-            background: #0f172a;
+            background: #1e293b;
             padding: 15px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin-bottom: 15px;
         }
         
+        /* Blank Blind Tiles */
         .cell {
             aspect-ratio: 1;
-            background-color: #334155;
-            border-radius: 4px;
+            background-color: #475569;
+            border-radius: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
+            font-size: 11px;
+            color: transparent; /* Hides symbol text until guessed */
             user-select: none;
-            transition: transform 0.1s, background-color 0.3s;
-            color: #cbd5e1;
-        }
-        .cell:hover {
-            transform: scale(1.08);
-            background-color: #475569;
+            transition: background-color 0.4s, color 0.4s;
         }
         
         .empty {
             background-color: transparent;
-            cursor: default;
-            pointer-events: none;
         }
         
-        /* Disabled state for already guessed elements */
-        .guessed {
-            pointer-events: none; /* Stops it from being clickable again */
-            transform: none !important;
-            opacity: 0.8;
+        /* Lanthanides / Actinides Spacer Row */
+        .spacer-row {
+            grid-column: span 18;
+            height: 15px;
         }
         
-        .freezing { background-color: #1d4ed8 !important; color: white; }
-        .cold { background-color: #3b82f6 !important; color: white; }
-        .warm { background-color: #f97316 !important; color: white; }
-        .hot { background-color: #ef4444 !important; color: white; }
-        .correct { background-color: #22c55e !important; color: white; animation: win-pop 0.5s ease; }
+        /* Colors when revealed */
+        .freezing { background-color: #1d4ed8 !important; color: white !important; }
+        .cold { background-color: #3b82f6 !important; color: white !important; }
+        .warm { background-color: #f97316 !important; color: white !important; }
+        .hot { background-color: #ef4444 !important; color: white !important; }
+        .correct { background-color: #22c55e !important; color: white !important; animation: win-pop 0.5s ease; }
         
-        #status-msg {
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 15px;
-            min-height: 27px;
-        }
-        .win-banner { color: #22c55e; font-size: 24px; display: none; }
-        
-        @keyframes win-pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-            100% { transform: scale(1); }
-        }
+        .win-banner { color: #22c55e; font-size: 28px; font-weight: bold; margin-top: 15px; display: none; }
+        @keyframes win-pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
-    <h1>Periodic Map Guesser</h1>
-    <p class="instructions">Click any element on the grid to guess. The closer you are to the secret element, the hotter the tile turns! You can only guess each tile once.</p>
+    <div class="game-controls">
+        <input type="text" id="guess-input" placeholder="Type Element Name or Symbol..." autocomplete="off" autofocus>
+        <button id="submit-btn">Guess</button>
+    </div>
     
     <div class="periodic-table" id="grid"></div>
-    
-    <div id="status-msg">Click a tile to start!</div>
-    <div id="win-banner" class="win-banner">🎉 Amazing! You found it! Refresh to play again.</div>
+    <div id="win-banner" class="win-banner">🎉 YOU WIN! Refresh to try again.</div>
 </div>
 
 <script>
 const elementData = [
-    { symbol: "H", row: 1, col: 1 },
-    { symbol: "He", row: 1, col: 18 },
-    { symbol: "Li", row: 2, col: 1 },
-    { symbol: "Be", row: 2, col: 2 },
-    { symbol: "B", row: 2, col: 13 },
-    { symbol: "C", row: 2, col: 14 },
-    { symbol: "N", row: 2, col: 15 },
-    { symbol: "O", row: 2, col: 16 },
-    { symbol: "F", row: 2, col: 17 },
-    { symbol: "Ne", row: 2, col: 18 },
-    { symbol: "Na", row: 3, col: 1 },
-    { symbol: "Mg", row: 3, col: 2 },
-    { symbol: "Al", row: 3, col: 13 },
-    { symbol: "Si", row: 3, col: 14 },
-    { symbol: "P", row: 3, col: 15 },
-    { symbol: "S", row: 3, col: 16 },
-    { symbol: "Cl", row: 3, col: 17 },
-    { symbol: "Ar", row: 3, col: 18 }
+    { name: "hydrogen", symbol: "H", row: 1, col: 1 }, { name: "helium", symbol: "He", row: 1, col: 18 },
+    { name: "lithium", symbol: "Li", row: 2, col: 1 }, { name: "beryllium", symbol: "Be", row: 2, col: 2 }, { name: "boron", symbol: "B", row: 2, col: 13 }, { name: "carbon", symbol: "C", row: 2, col: 14 }, { name: "nitrogen", symbol: "N", row: 2, col: 15 }, { name: "oxygen", symbol: "O", row: 2, col: 16 }, { name: "fluorine", symbol: "F", row: 2, col: 17 }, { name: "neon", symbol: "Ne", row: 2, col: 18 },
+    { name: "sodium", symbol: "Na", row: 3, col: 1 }, { name: "magnesium", symbol: "Mg", row: 3, col: 2 }, { name: "aluminum", symbol: "Al", row: 3, col: 13 }, { name: "silicon", symbol: "Si", row: 3, col: 14 }, { name: "phosphorus", symbol: "P", row: 3, col: 15 }, { name: "sulfur", symbol: "S", row: 3, col: 16 }, { name: "chlorine", symbol: "Cl", row: 3, col: 17 }, { name: "argon", symbol: "Ar", row: 3, col: 18 },
+    { name: "potassium", symbol: "K", row: 4, col: 1 }, { name: "calcium", symbol: "Ca", row: 4, col: 2 }, { name: "scandium", symbol: "Sc", row: 4, col: 3 }, { name: "titanium", symbol: "Ti", row: 4, col: 4 }, { name: "vanadium", symbol: "V", row: 4, col: 5 }, { name: "chromium", symbol: "Cr", row: 4, col: 6 }, { name: "manganese", symbol: "Mn", row: 4, col: 7 }, { name: "iron", symbol: "Fe", row: 4, col: 8 }, { name: "cobalt", symbol: "Co", row: 4, col: 9 }, { name: "nickel", symbol: "Ni", row: 4, col: 10 }, { name: "copper", symbol: "Cu", row: 4, col: 11 }, { name: "zinc", symbol: "Zn", row: 4, col: 12 }, { name: "gallium", symbol: "Ga", row: 4, col: 13 }, { name: "germanium", symbol: "Ge", row: 4, col: 14 }, { name: "arsenic", symbol: "As", row: 4, col: 15 }, { name: "selenium", symbol: "Se", row: 4, col: 16 }, { name: "bromine", symbol: "Br", row: 4, col: 17 }, { name: "krypton", symbol: "Kr", row: 4, col: 18 },
+    { name: "rubidium", symbol: "Rb", row: 5, col: 1 }, { name: "strontium", symbol: "Sr", row: 5, col: 2 }, { name: "yttrium", symbol: "Y", row: 5, col: 3 }, { name: "zirconium", symbol: "Zr", row: 5, col: 4 }, { name: "niobium", symbol: "Nb", row: 5, col: 5 }, { name: "molybdenum", symbol: "Mo", row: 5, col: 6 }, { name: "technetium", symbol: "Tc", row: 5, col: 7 }, { name: "ruthenium", symbol: "Ru", row: 5, col: 8 }, { name: "rhodium", symbol: "Rh", row: 5, col: 9 }, { name: "palladium", symbol: "Pd", row: 5, col: 10 }, { name: "silver", symbol: "Ag", row: 5, col: 11 }, { name: "cadmium", symbol: "Cd", row: 5, col: 12 }, { name: "indium", symbol: "In", row: 5, col: 13 }, { name: "tin", symbol: "Sn", row: 5, col: 14 }, { name: "antimony", symbol: "Sb", row: 5, col: 15 }, { name: "tellurium", symbol: "Te", row: 5, col: 16 }, { name: "iodine", symbol: "I", row: 5, col: 17 }, { name: "xenon", symbol: "Xe", row: 5, col: 18 },
+    { name: "cesium", symbol: "Cs", row: 6, col: 1 }, { name: "barium", symbol: "Ba", row: 6, col: 2 }, { name: "hafnium", symbol: "Hf", row: 6, col: 4 }, { name: "tantalum", symbol: "Ta", row: 6, col: 5 }, { name: "tungsten", symbol: "W", row: 6, col: 6 }, { name: "rhenium", symbol: "Re", row: 6, col: 7 }, { name: "osmium", symbol: "Os", row: 6, col: 8 }, { name: "iridium", symbol: "Ir", row: 6, col: 9 }, { name: "platinum", symbol: "Pt", row: 6, col: 10 }, { name: "gold", symbol: "Au", row: 6, col: 11 }, { name: "mercury", symbol: "Hg", row: 6, col: 12 }, { name: "thallium", symbol: "Tl", row: 6, col: 13 }, { name: "lead", symbol: "Pb", row: 6, col: 14 }, { name: "bismuth", symbol: "Bi", row: 6, col: 15 }, { name: "polonium", symbol: "Po", row: 6, col: 16 }, { name: "astatine", symbol: "At", row: 6, col: 17 }, { name: "radon", symbol: "Rn", row: 6, col: 18 },
+    { name: "francium", symbol: "Fr", row: 7, col: 1 }, { name: "radium", symbol: "Ra", row: 7, col: 2 }, { name: "rutherfordium", symbol: "Rf", row: 7, col: 4 }, { name: "dubnium", symbol: "Db", row: 7, col: 5 }, { name: "seaborgium", symbol: "Sg", row: 7, col: 6 }, { name: "bohrium", symbol: "Bh", row: 7, col: 7 }, { name: "hassium", symbol: "Hs", row: 7, col: 8 }, { name: "meitnerium", symbol: "Mt", row: 7, col: 9 }, { name: "darmstadtium", symbol: "Ds", row: 7, col: 10 }, { name: "roentgenium", symbol: "Rg", row: 7, col: 11 }, { name: "copernicium", symbol: "Cn", row: 7, col: 12 }, { name: "nihonium", symbol: "Nh", row: 7, col: 13 }, { name: "flerovium", symbol: "Fl", row: 7, col: 14 }, { name: "moscovium", symbol: "Mc", row: 7, col: 15 }, { name: "livermorium", symbol: "Lv", row: 7, col: 16 }, { name: "tennessine", symbol: "Ts", row: 7, col: 17 }, { name: "oganesson", symbol: "Og", row: 7, col: 18 },
+    // Lanthanides (Row 9 split placement)
+    { name: "lanthanum", symbol: "La", row: 9, col: 4 }, { name: "cerium", symbol: "Ce", row: 9, col: 5 }, { name: "praseodymium", symbol: "Pr", row: 9, col: 6 }, { name: "neodymium", symbol: "Nd", row: 9, col: 7 }, { name: "promethium", symbol: "Pm", row: 9, col: 8 }, { name: "samarium", symbol: "Sm", row: 9, col: 9 }, { name: "europium", symbol: "Eu", row: 9, col: 10 }, { name: "gadolinium", symbol: "Gd", row: 9, col: 11 }, { name: "terbium", symbol: "Tb", row: 9, col: 12 }, { name: "dysprosium", symbol: "Dy", row: 9, col: 13 }, { name: "holmium", symbol: "Ho", row: 9, col: 14 }, { name: "erbium", symbol: "Er", row: 9, col: 15 }, { name: "thulium", symbol: "Tm", row: 9, col: 16 }, { name: "ytterbium", symbol: "Yb", row: 9, col: 17 }, { name: "lutetium", symbol: "Lu", row: 9, col: 18 },
+    // Actinides (Row 10 split placement)
+    { name: "actinium", symbol: "Ac", row: 10, col: 4 }, { name: "thorium", symbol: "Th", row: 10, col: 5 }, { name: "protactinium", symbol: "Pa", row: 10, col: 6 }, { name: "uranium", symbol: "U", row: 10, col: 7 }, { name: "neptunium", symbol: "Np", row: 10, col: 8 }, { name: "plutonium", symbol: "Pu", row: 10, col: 9 }, { name: "americium", symbol: "Am", row: 10, col: 10 }, { name: "curium", symbol: "Cm", row: 10, col: 11 }, { name: "berkelium", symbol: "Bk", row: 10, col: 12 }, { name: "californium", symbol: "Cf", row: 10, col: 13 }, { name: "einsteinium", symbol: "Es", row: 10, col: 14 }, { name: "fermium", symbol: "Fm", row: 10, col: 15 }, { name: "mendelevium", symbol: "Md", row: 10, col: 16 }, { name: "nobelium", symbol: "No", row: 10, col: 17 }, { name: "lawrencium", symbol: "Lr", row: 10, col: 18 }
 ];
 
 const secretElement = elementData[Math.floor(Math.random() * elementData.length)];
 let gameActive = true;
+const guessedElements = new Set();
 
 const gridContainer = document.getElementById('grid');
-const statusMsg = document.getElementById('status-msg');
+const inputField = document.getElementById('guess-input');
+const submitBtn = document.getElementById('submit-btn');
 const winBanner = document.getElementById('win-banner');
 
-for (let r = 1; r <= 3; r++) {
-    for (let c = 1; c <= 18; c++) {
-        const cell = document.createElement('div');
-        const el = elementData.find(item => item.row === r && item.col === c);
-        
-        if (el) {
-            cell.className = "cell";
-            cell.innerText = el.symbol;
-            cell.addEventListener('click', () => handleGuess(el, cell));
-        } else {
-            cell.className = "cell empty";
+const tileMap = {};
+
+function buildTable() {
+    for (let r = 1; r <= 10; r++) {
+        if (r === 8) {
+            let spacer = document.createElement('div');
+            spacer.className = "spacer-row";
+            gridContainer.appendChild(spacer);
+            continue;
         }
-        gridContainer.appendChild(cell);
+        for (let c = 1; c <= 18; c++) {
+            const cell = document.createElement('div');
+            const el = elementData.find(item => item.row === r && item.col === c);
+            
+            if (el) {
+                cell.className = "cell";
+                cell.innerText = el.symbol;
+                tileMap[el.name] = cell;
+            } else {
+                cell.className = "empty";
+            }
+            gridContainer.appendChild(cell);
+        }
     }
 }
 
-function handleGuess(guessedEl, cellElement) {
-    if (!gameActive || cellElement.classList.contains('guessed')) return;
+function processGuess() {
+    if (!gameActive) return;
+    const rawInput = inputField.value.trim().toLowerCase();
+    inputField.value = ""; 
     
-    // Mark it as guessed so it can't be clicked again
-    cellElement.classList.add('guessed');
+    const foundEl = elementData.find(el => el.name === rawInput || el.symbol.toLowerCase() === rawInput);
     
-    const rowDiff = Math.abs(guessedEl.row - secretElement.row);
-    const colDiff = Math.abs(guessedEl.col - secretElement.col);
+    if (!foundEl) {
+        alert("Not a valid element name or symbol!");
+        return;
+    }
+    
+    if (guessedElements.has(foundEl.name)) {
+        alert("You already guessed that element!");
+        return;
+    }
+    
+    guessedElements.add(foundEl.name);
+    const targetTile = tileMap[foundEl.name];
+    
+    const rowDiff = Math.abs(foundEl.row - secretElement.row);
+    const colDiff = Math.abs(foundEl.col - secretElement.col);
     const distance = rowDiff + colDiff;
     
     if (distance === 0) {
-        cellElement.classList.add('correct');
-        statusMsg.style.display = "none";
+        targetTile.classList.add('correct');
         winBanner.style.display = "block";
+        inputField.disabled = true;
+        submitBtn.disabled = true;
         gameActive = false;
     } else if (distance <= 2) {
-        cellElement.classList.add('hot');
-        statusMsg.innerHTML = `🔥 <b>${guessedEl.symbol}</b> is Burning Hot!`;
+        targetTile.classList.add('hot');
     } else if (distance <= 4) {
-        cellElement.classList.add('warm');
-        statusMsg.innerHTML = `🌤️ <b>${guessedEl.symbol}</b> is Warm.`;
+        targetTile.classList.add('warm');
     } else if (distance <= 8) {
-        cellElement.classList.add('cold');
-        statusMsg.innerHTML = `❄️ <b>${guessedEl.symbol}</b> is Chilly.`;
+        targetTile.classList.add('cold');
     } else {
-        cellElement.classList.add('freezing');
-        statusMsg.innerHTML = `🥶 <b>${guessedEl.symbol}</b> is Freezing Cold!`;
+        targetTile.classList.add('freezing');
     }
 }
+
+submitBtn.addEventListener('click', processGuess);
+inputField.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') processGuess();
+});
+
+buildTable();
 </script>
 
 </body>
