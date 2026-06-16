@@ -19,7 +19,7 @@
         }
         
         .game-controls {
-            margin: 10px auto 25px auto;
+            margin: 10px auto 15px auto;
             max-width: 400px;
             display: flex;
             gap: 10px;
@@ -47,6 +47,14 @@
             cursor: pointer;
         }
         button:hover { background-color: #0ea5e9; }
+
+        /* Temperature Text Display */
+        #status-msg {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            min-height: 30px;
+        }
 
         .periodic-table {
             display: grid;
@@ -100,6 +108,8 @@
         <button id="submit-btn">Guess</button>
     </div>
     
+    <div id="status-msg"></div>
+    
     <div class="periodic-table" id="grid"></div>
     <div id="win-banner" class="win-banner">🎉 YOU WIN! Refresh to try again.</div>
 </div>
@@ -125,6 +135,7 @@ const gridContainer = document.getElementById('grid');
 const inputField = document.getElementById('guess-input');
 const submitBtn = document.getElementById('submit-btn');
 const winBanner = document.getElementById('win-banner');
+const statusMsg = document.getElementById('status-msg');
 const tileMap = {};
 
 function buildTable() {
@@ -150,7 +161,6 @@ function buildTable() {
     }
 }
 
-// Math logic to calculate typos (Levenshtein distance)
 function getTypoCount(a, b) {
     if (a.length === 0) return b.length;
     if (b.length === 0) return a.length;
@@ -175,17 +185,11 @@ function processGuess() {
     if (!rawInput) return;
     
     inputField.value = ""; 
+    let foundEl = elementData.find(el => el.name === rawInput || el.symbol.toLowerCase() === rawInput);
     
-    let foundEl = null;
-
-    // First try: Exact match for Name or Symbol
-    foundEl = elementData.find(el => el.name === rawInput || el.symbol.toLowerCase() === rawInput);
-    
-    // Second try: Fuzzy search for typos on the name
     if (!foundEl) {
         let bestMatch = null;
         let lowestTypos = Infinity;
-        
         for (let el of elementData) {
             let typos = getTypoCount(rawInput, el.name);
             if (typos < lowestTypos) {
@@ -193,7 +197,6 @@ function processGuess() {
                 bestMatch = el;
             }
         }
-        // Allow 1 typo for short words (under 5 letters) and 2 typos for longer words
         let maxTyposAllowed = rawInput.length <= 4 ? 1 : 2;
         if (lowestTypos <= maxTyposAllowed) {
             foundEl = bestMatch;
@@ -201,18 +204,19 @@ function processGuess() {
     }
     
     if (!foundEl) {
-        alert("Not a valid element name! Check your spelling.");
+        statusMsg.innerHTML = "❌ Not a valid element name!";
+        statusMsg.style.color = "#ef4444";
         return;
     }
     
     if (guessedElements.has(foundEl.name)) {
-        alert(`You already guessed ${foundEl.name}!`);
+        statusMsg.innerHTML = `⚠️ You already guessed ${foundEl.symbol}!`;
+        statusMsg.style.color = "#f59e0b";
         return;
     }
     
-    // If it was a typo, show them what the game corrected it to
-    inputField.placeholder = `Accepted as ${foundEl.name.charAt(0).toUpperCase() + foundEl.name.slice(1)}...`;
-    
+    // Format full capitalized name string
+    const formatName = foundEl.name.charAt(0).toUpperCase() + foundEl.name.slice(1);
     guessedElements.add(foundEl.name);
     const targetTile = tileMap[foundEl.name];
     
@@ -220,20 +224,27 @@ function processGuess() {
     const colDiff = Math.abs(foundEl.col - secretElement.col);
     const distance = rowDiff + colDiff;
     
+    statusMsg.style.color = "#f8fafc"; // Reset status text color to white
+    
     if (distance === 0) {
         targetTile.classList.add('correct');
+        statusMsg.style.display = "none";
         winBanner.style.display = "block";
         inputField.disabled = true;
         submitBtn.disabled = true;
         gameActive = false;
     } else if (distance <= 2) {
         targetTile.classList.add('hot');
+        statusMsg.innerHTML = `🔥 <b>${formatName} (${foundEl.symbol})</b> is Burning Hot!`;
     } else if (distance <= 4) {
         targetTile.classList.add('warm');
+        statusMsg.innerHTML = `🌤️ <b>${formatName} (${foundEl.symbol})</b> is Warm.`;
     } else if (distance <= 8) {
         targetTile.classList.add('cold');
+        statusMsg.innerHTML = `❄️ <b>${formatName} (${foundEl.symbol})</b> is Chilly.`;
     } else {
         targetTile.classList.add('freezing');
+        statusMsg.innerHTML = `🥶 <b>${formatName} (${foundEl.symbol})</b> is Freezing Cold!`;
     }
 }
 
