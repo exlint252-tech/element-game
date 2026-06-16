@@ -3,158 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Periodic Element Guesser</title>
+    <title>Periodic Map Guesser</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             text-align: center;
-            background-color: #f4f7f6;
-            color: #333;
+            background-color: #1e293b;
+            color: #f8fafc;
+            margin: 0;
             padding: 20px;
         }
-        .container {
-            max-width: 500px;
+        .wrapper {
+            max-width: 800px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        h1 { color: #2c3e50; margin-top: 0; }
-        select, button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: 2px solid #bdc3c7;
-            font-size: 16px;
-            box-sizing: border-box;
+        h1 { margin-bottom: 5px; color: #38bdf8; }
+        .instructions { color: #94a3b8; margin-bottom: 20px; font-size: 14px; }
+        
+        /* The Periodic Table Grid Layout */
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 4px;
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+            overflow-x: auto;
         }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        button:hover { background-color: #2980b9; }
-        .guess-row {
+        
+        /* Individual Element Tiles */
+        .cell {
+            aspect-ratio: 1;
+            background-color: #334155;
+            border-radius: 4px;
             display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 6px;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s, background-color 0.3s;
+            color: #cbd5e1;
         }
-        .freezing { background-color: #3498db; }
-        .cold { background-color: #64b5f6; }
-        .warm { background-color: #ffb74d; }
-        .hot { background-color: #e67e22; }
-        .burning { background-color: #e74c3c; }
-        .correct { background-color: #2ecc71; animation: pop 0.3s ease; }
-        #win-message { display: none; color: #2ecc71; font-weight: bold; margin-top: 15px; }
-        @keyframes pop { 0% { transform: scale(0.9); } 100% { transform: scale(1); } }
+        .cell:hover {
+            transform: scale(1.08);
+            background-color: #475569;
+        }
+        
+        /* Blank spacers in the table structure */
+        .empty {
+            background-color: transparent;
+            cursor: default;
+            pointer-events: none;
+        }
+        
+        /* Temperature Clue Colors */
+        .freezing { background-color: #1d4ed8 !important; color: white; }
+        .cold { background-color: #3b82f6 !important; color: white; }
+        .warm { background-color: #f97316 !important; color: white; }
+        .hot { background-color: #ef4444 !important; color: white; }
+        .correct { background-color: #22c55e !important; color: white; animation: win-pop 0.5s ease; }
+        
+        #status-msg {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            min-height: 27px;
+        }
+        .win-banner { color: #22c55e; font-size: 24px; display: none; }
+        
+        @keyframes win-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Periodic Element Guesser</h1>
-    <p>Guess the secret element! The game will tell you how hot or cold you are based on the periodic table layout.</p>
+<div class="wrapper">
+    <h1>Periodic Map Guesser</h1>
+    <p class="instructions">Click any element element on the grid to guess. The closer you are to the secret element, the hotter the tile turns!</p>
     
-    <select id="element-select">
-        <option value="">-- Choose an Element --</option>
-    </select>
-    <button id="guess-btn">Submit Guess</button>
+    <div class="periodic-table" id="grid"></div>
     
-    <div id="win-message">🎉 You found it! Refresh to play again.</div>
-    <div id="history"></div>
+    <div id="status-msg">Click a tile to start!</div>
+    <div id="win-banner" class="win-banner">🎉 Amazing! You found it! Refresh to play again.</div>
 </div>
 
 <script>
-// Simplified dataset of elements with their grid coordinates (Row, Column)
-const elements = [
-    { name: "Hydrogen (H)", row: 1, col: 1 },
-    { name: "Helium (He)", row: 1, col: 18 },
-    { name: "Lithium (Li)", row: 2, col: 1 },
-    { name: "Beryllium (Be)", row: 2, col: 2 },
-    { name: "Boron (B)", row: 2, col: 13 },
-    { name: "Carbon (C)", row: 2, col: 14 },
-    { name: "Nitrogen (N)", row: 2, col: 15 },
-    { name: "Oxygen (O)", row: 2, col: 16 },
-    { name: "Fluorine (F)", row: 2, col: 17 },
-    { name: "Neon (Ne)", row: 2, col: 18 },
-    { name: "Sodium (Na)", row: 3, col: 1 },
-    { name: "Magnesium (Mg)", row: 3, col: 2 },
-    { name: "Aluminum (Al)", row: 3, col: 13 },
-    { name: "Silicon (Si)", row: 3, col: 14 },
-    { name: "Phosphorus (P)", row: 3, col: 15 },
-    { name: "Sulfur (S)", row: 3, col: 16 },
-    { name: "Chlorine (Cl)", row: 3, col: 17 },
-    { name: "Argon (Ar)", row: 3, col: 18 },
-    { name: "Potassium (K)", row: 4, col: 1 },
-    { name: "Calcium (Ca)", row: 4, col: 2 },
-    { name: "Iron (Fe)", row: 4, col: 8 },
-    { name: "Copper (Cu)", row: 4, col: 11 },
-    { name: "Gold (Au)", row: 6, col: 11 }
+// Data map of the first three full rows of the periodic table
+const elementData = [
+    { symbol: "H", row: 1, col: 1 },
+    { symbol: "He", row: 1, col: 18 },
+    { symbol: "Li", row: 2, col: 1 },
+    { symbol: "Be", row: 2, col: 2 },
+    { symbol: "B", row: 2, col: 13 },
+    { symbol: "C", row: 2, col: 14 },
+    { symbol: "N", row: 2, col: 15 },
+    { symbol: "O", row: 2, col: 16 },
+    { symbol: "F", row: 2, col: 17 },
+    { symbol: "Ne", row: 2, col: 18 },
+    { symbol: "Na", row: 3, col: 1 },
+    { symbol: "Mg", row: 3, col: 2 },
+    { symbol: "Al", row: 3, col: 13 },
+    { symbol: "Si", row: 3, col: 14 },
+    { symbol: "P", row: 3, col: 15 },
+    { symbol: "S", row: 3, col: 16 },
+    { symbol: "Cl", row: 3, col: 17 },
+    { symbol: "Ar", row: 3, col: 18 }
 ];
 
-// Pick a random secret element
-const secretElement = elements[Math.floor(Math.random() * elements.length)];
+// Pick a target answer from the list
+const secretElement = elementData[Math.floor(Math.random() * elementData.length)];
+let gameActive = true;
 
-// Populate the dropdown menu alphabetically
-const selectMenu = document.getElementById('element-select');
-[...elements].sort((a,b) => a.name.localeCompare(b.name)).forEach(el => {
-    let opt = document.createElement('option');
-    opt.value = el.name;
-    opt.innerHTML = el.name;
-    selectMenu.appendChild(opt);
-});
+const gridContainer = document.getElementById('grid');
+const statusMsg = document.getElementById('status-msg');
+const winBanner = document.getElementById('win-banner');
 
-// Game logic when clicking "Submit Guess"
-document.getElementById('guess-btn').addEventListener('click', () => {
-    const guessName = selectMenu.value;
-    if (!guessName) return alert("Please select an element!");
+// Draw the layout grid (3 rows x 18 columns)
+for (let r = 1; r <= 3; r++) {
+    for (let c = 1; c <= 18; c++) {
+        const cell = document.createElement('div');
+        
+        // Check if an element belongs in this row/column layout slot
+        const el = elementData.find(item => item.row === r && item.col === c);
+        
+        if (el) {
+            cell.className = "cell";
+            cell.innerText = el.symbol;
+            // Listen for clicks on the elements
+            cell.addEventListener('click', () => handleGuess(el, cell));
+        } else {
+            cell.className = "cell empty";
+        }
+        
+        gridContainer.appendChild(cell);
+    }
+}
+
+function handleGuess(guessedEl, cellElement) {
+    if (!gameActive) return;
     
-    const guessedEl = elements.find(el => el.name === guessName);
-    
-    // Calculate Grid Distance using absolute values
+    // Grid distance calculation formulas
     const rowDiff = Math.abs(guessedEl.row - secretElement.row);
     const colDiff = Math.abs(guessedEl.col - secretElement.col);
-    const totalDistance = rowDiff + colDiff;
+    const distance = rowDiff + colDiff;
     
-    let tempClass = "";
-    let textStatus = "";
+    // Clear old statuses
+    cellElement.classList.remove('freezing', 'cold', 'warm', 'hot', 'correct');
     
-    // Determine temperature based on distance
-    if (totalDistance === 0) {
-        tempClass = "correct";
-        textStatus = "Correct!";
-        document.getElementById('win-message').style.display = "block";
-        document.getElementById('guess-btn').disabled = true;
-    } else if (totalDistance <= 2) {
-        tempClass = "burning";
-        textStatus = "Burning Hot!";
-    } else if (totalDistance <= 5) {
-        tempClass = "hot";
-        textStatus = "Warm";
-    } else if (totalDistance <= 9) {
-        tempClass = "cold";
-        textStatus = "Chilly";
+    if (distance === 0) {
+        cellElement.classList.add('correct');
+        statusMsg.style.display = "none";
+        winBanner.style.display = "block";
+        gameActive = false;
+    } else if (distance <= 2) {
+        cellElement.classList.add('hot');
+        statusMsg.innerHTML = `🔥 <b>${guessedEl.symbol}</b> is Burning Hot!`;
+    } else if (distance <= 4) {
+        cellElement.classList.add('warm');
+        statusMsg.innerHTML = `🌤️ <b>${guessedEl.symbol}</b> is Warm.`;
+    } else if (distance <= 8) {
+        cellElement.classList.add('cold');
+        statusMsg.innerHTML = `❄️ <b>${guessedEl.symbol}</b> is Chilly.`;
     } else {
-        tempClass = "freezing";
-        textStatus = "Freezing Cold";
+        cellElement.classList.add('freezing');
+        statusMsg.innerHTML = `🥶 <b>${guessedEl.symbol}</b> is Freezing Cold!`;
     }
-    
-    // Add to history list
-    const historyDiv = document.getElementById('history');
-    const newRow = document.createElement('div');
-    newRow.className = `guess-row ${tempClass}`;
-    newRow.innerHTML = `<span>${guessedEl.name}</span> <span>${textStatus}</span>`;
-    historyDiv.insertBefore(newRow, historyDiv.firstChild);
-});
+}
 </script>
 
 </body>
