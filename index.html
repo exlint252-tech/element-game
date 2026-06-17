@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Element Game</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -25,17 +24,19 @@
             font-size: 32px;
         }
 
-        /* Auth Bar styling */
-        .auth-bar {
+        /* Streak Tracker Bar */
+        .streak-bar {
             background-color: #1e293b;
             padding: 10px 20px;
             border-radius: 8px;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            gap: 20px;
             max-width: 500px;
             margin: 0 auto 15px auto;
             border: 1px solid #334155;
+            font-weight: bold;
         }
         
         .game-controls {
@@ -125,7 +126,7 @@
         .txt-hot { color: #fca5a5; }
         .txt-correct { color: #86efac; }
         
-        /* Modals and Auth Popups */
+        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -143,7 +144,6 @@
             display: flex; flex-direction: column; gap: 15px;
         }
         .modal-overlay.show .modal-box { transform: scale(1); }
-        .modal-box input { width: 100%; box-sizing: border-box; }
 
         @keyframes win-pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
         @keyframes table-intro { 0% { opacity: 0; transform: scale(0.96) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
@@ -154,9 +154,9 @@
 <div class="wrapper">
     <h1>Element Game</h1>
 
-    <div class="auth-bar">
-        <span id="user-display">Playing as: 👤 Guest</span>
-        <button id="auth-action-btn" class="btn-primary" style="padding: 6px 12px; font-size: 14px;">Sign Up / Login</button>
+    <div class="streak-bar">
+        <span>🔥 Current Streak: <span id="bar-streak" style="color: #f59e0b;">0</span></span>
+        <span>🏆 Best Streak: <span id="bar-best" style="color: #38bdf8;">0</span></span>
     </div>
 
     <div class="game-controls">
@@ -167,22 +167,6 @@
     
     <div id="status-msg"></div>
     <div class="periodic-table" id="grid"></div>
-</div>
-
-<div class="modal-overlay" id="auth-modal">
-    <div class="modal-box" style="border-color: #38bdf8;">
-        <h2 id="auth-title" style="margin:0; color:#38bdf8;">Create Account</h2>
-        <div id="auth-errors" style="color: #ef4444; font-weight: bold; font-size: 14px; min-height: 20px;"></div>
-        
-        <div id="auth-fields" style="display: flex; flex-direction: column; gap: 12px;">
-            <input type="text" id="auth-username" placeholder="Username (Profile Display)">
-            <input type="email" id="auth-email" placeholder="Email Address">
-            <input type="password" id="auth-password" placeholder="Password">
-            <button id="auth-submit-btn" class="btn-primary">Register Account</button>
-            <p style="margin:0; font-size:14px; cursor:pointer; color:#94a3b8;" id="toggle-auth-mode">Already have an account? Log In</p>
-        </div>
-        <button style="background-color: transparent; color: #64748b;" id="close-auth-btn">Cancel</button>
-    </div>
 </div>
 
 <div class="modal-overlay" id="win-modal">
@@ -199,11 +183,6 @@
 </div>
 
 <script>
-// --- INITIALIZE SUPABASE ---
-const SUPABASE_URL = 'https://kixftnbktispkjgnbxbh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpeGZ0bmJrdGlzcGtqZ25ieGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTc5MTUsImV4cCI6MjA5NzE3MzkxNX0.Tmf_qjNoYuN_fXxrUUd2IjOJurtpvV1nzw55snX-JrQ';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const elementData = [
     { name: "hydrogen", symbol: "H", row: 1, col: 1 }, { name: "helium", symbol: "He", row: 1, col: 18 },
     { name: "lithium", symbol: "Li", row: 2, col: 1 }, { name: "beryllium", symbol: "Be", row: 2, col: 2 }, { name: "boron", symbol: "B", row: 2, col: 13 }, { name: "carbon", symbol: "C", row: 2, col: 14 }, { name: "nitrogen", symbol: "N", row: 2, col: 15 }, { name: "oxygen", symbol: "O", row: 2, col: 16 }, { name: "fluorine", symbol: "F", row: 2, col: 17 }, { name: "neon", symbol: "Ne", row: 2, col: 18 },
@@ -223,8 +202,6 @@ let guessedElements = new Set();
 let guessCount = 0;
 let startTime;
 let audioCtx = null;
-let currentUser = null;
-let authMode = "register"; // or "login"
 
 const gridContainer = document.getElementById('grid');
 const inputField = document.getElementById('guess-input');
@@ -232,14 +209,8 @@ const submitBtn = document.getElementById('submit-btn');
 const giveupBtn = document.getElementById('giveup-btn');
 const statusMsg = document.getElementById('status-msg');
 
-// Auth DOM
-const authModal = document.getElementById('auth-modal');
-const authActionBtn = document.getElementById('auth-action-btn');
-const authSubmitBtn = document.getElementById('auth-submit-btn');
-const toggleAuthMode = document.getElementById('toggle-auth-mode');
-const closeAuthBtn = document.getElementById('close-auth-btn');
-const userDisplay = document.getElementById('user-display');
-const authErrors = document.getElementById('auth-errors');
+const barStreak = document.getElementById('bar-streak');
+const barBest = document.getElementById('bar-best');
 
 // Modal Elements
 const winModal = document.getElementById('win-modal');
@@ -288,86 +259,12 @@ function startAudioContext() {
     if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } else { initAudio(); }
 }
 
-// --- AUTH MANAGEMENT ---
-if (supabase) {
-    // Listen to changes in authentication state (signed in / signed out)
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-            currentUser = session.user;
-            userDisplay.innerText = `👤 ${currentUser.user_metadata.username || currentUser.email}`;
-            authActionBtn.innerText = "Log Out";
-        } else {
-            currentUser = null;
-            userDisplay.innerText = `👤 Guest`;
-            authActionBtn.innerText = "Sign Up / Login";
-        }
-    });
+function updateTopStreakBar() {
+    let currentStreak = parseInt(localStorage.getItem('local_elem_streak') || '0');
+    let bestStreak = parseInt(localStorage.getItem('local_elem_best_streak') || '0');
+    barStreak.innerText = currentStreak;
+    barBest.innerText = bestStreak;
 }
-
-authActionBtn.addEventListener('click', async () => {
-    if (currentUser) {
-        if (supabase) await supabase.auth.signOut();
-        alert("Logged out safely!");
-    } else {
-        authErrors.innerText = "";
-        authModal.classList.add('show');
-    }
-});
-
-closeAuthBtn.addEventListener('click', () => authModal.classList.remove('show'));
-
-toggleAuthMode.addEventListener('click', () => {
-    authErrors.innerText = "";
-    if (authMode === "register") {
-        authMode = "login";
-        document.getElementById('auth-title').innerText = "Log In";
-        document.getElementById('auth-username').style.display = "none";
-        authSubmitBtn.innerText = "Login";
-        toggleAuthMode.innerText = "Don't have an account? Sign Up";
-    } else {
-        authMode = "register";
-        document.getElementById('auth-title').innerText = "Create Account";
-        document.getElementById('auth-username').style.display = "block";
-        authSubmitBtn.innerText = "Register Account";
-        toggleAuthMode.innerText = "Already have an account? Log In";
-    }
-});
-
-authSubmitBtn.addEventListener('click', async () => {
-    if (!supabase) {
-        authErrors.innerText = "Supabase configuration error!";
-        return;
-    }
-    authErrors.innerText = "";
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-password').value;
-    const username = document.getElementById('auth-username').value.trim();
-
-    if (authMode === "register") {
-        if(!username || !email || !password) { authErrors.innerText = "Please fill in all fields."; return; }
-        
-        const { data, error } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-            options: { data: { username: username } }
-        });
-        
-        if (error) {
-            authErrors.innerText = error.message;
-        } else {
-            alert("Success! A verification email has been sent. Please open your inbox, click the verification link, then log in!");
-            authModal.classList.remove('show');
-        }
-    } else {
-        if(!email || !password) { authErrors.innerText = "Please fill in all fields."; return; }
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            authErrors.innerText = error.message;
-        } else {
-            authModal.classList.remove('show');
-        }
-    }
-});
 
 // --- CORE GAME ENGINE ---
 function initGame() {
@@ -389,6 +286,7 @@ function initGame() {
     startTime = Date.now();
     
     buildTable();
+    updateTopStreakBar();
     inputField.focus();
 }
 
@@ -415,6 +313,7 @@ function buildTable() {
     }
 }
 
+// Typo Matching Formula
 function getTypoCount(a, b) {
     if (a.length === 0) return b.length;
     if (b.length === 0) return a.length;
@@ -529,10 +428,8 @@ function endGame(isWin) {
     
     const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
     
-    // Save to local storage for guests, or secure cloud save if logged in
-    let keyPrefix = currentUser ? currentUser.id : 'elem';
-    let currentStreak = parseInt(localStorage.getItem(`${keyPrefix}_streak`) || '0');
-    let bestStreak = parseInt(localStorage.getItem(`${keyPrefix}_best_streak`) || '0');
+    let currentStreak = parseInt(localStorage.getItem('local_elem_streak') || '0');
+    let bestStreak = parseInt(localStorage.getItem('local_elem_best_streak') || '0');
     
     if (isWin) {
         currentStreak++;
@@ -547,14 +444,16 @@ function endGame(isWin) {
         modalBorder.style.borderColor = "#ef4444";
     }
     
-    localStorage.setItem(`${keyPrefix}_streak`, currentStreak);
-    localStorage.setItem(`${keyPrefix}_best_streak`, bestStreak);
+    localStorage.setItem('local_elem_streak', currentStreak);
+    localStorage.setItem('local_elem_best_streak', bestStreak);
     
     secretReveal.innerText = `${secretElement.name.charAt(0).toUpperCase() + secretElement.name.slice(1)} (${secretElement.symbol})`;
     statGuesses.innerText = guessCount;
     statTime.innerText = `${timeElapsed}s`;
     statStreak.innerText = currentStreak;
     statBestStreak.innerText = bestStreak;
+    
+    updateTopStreakBar();
     
     setTimeout(() => { winModal.classList.add('show'); }, 700);
 }
